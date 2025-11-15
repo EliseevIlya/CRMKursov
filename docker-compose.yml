@@ -1,0 +1,82 @@
+version: "3.8"
+
+services:
+  worker1:
+    image: citusdata/citus:12.1
+    container_name: citus_worker1
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fitness_crm
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - worker1_data:/var/lib/postgresql/data
+
+  worker2:
+    image: citusdata/citus:12.1
+    container_name: citus_worker2
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fitness_crm
+      POSTGRES_HOST_AUTH_METHOD: trust
+    volumes:
+      - worker2_data:/var/lib/postgresql/data
+
+  coordinator:
+    image: citusdata/citus:12.1
+    container_name: citus_coordinator
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: fitness_crm
+    ports:
+      - "5432:5432"
+    volumes:
+      - ./db/init:/docker-entrypoint-initdb.d:ro
+    depends_on:
+      - worker1
+      - worker2
+
+  citus-setup:
+    image: postgres:15
+    container_name: citus_setup
+    depends_on:
+      - coordinator
+    volumes:
+      - ./db/init:/work:ro
+    entrypoint: >
+      /bin/sh -c "
+      echo 'Waiting for coordinator...';
+      until pg_isready -h coordinator -p 5432 -U postgres; do sleep 1; done;
+      echo 'Running init_citus.sql';
+      PGPASSWORD=postgres psql -h coordinator -U postgres -d fitness_crm -f /work/init_citus.sql;
+      echo 'Done';"
+    environment:
+      - PGPASSWORD=postgres
+
+  mongodb:
+    image: mongo:6.0
+    container_name: mongo_fitness
+    restart: always
+    ports:
+      - "27017:27017"
+    environment:
+      - MONGO_INITDB_ROOT_USERNAME=root
+      - MONGO_INITDB_ROOT_PASSWORD=example
+    volumes:
+      - mongo_data:/data/db
+
+  redis:
+    image: redis:7
+    container_name: redis_fitness
+    ports:
+      - "6379:6379"
+    volumes:
+      - redis_data:/data
+
+volumes:
+  worker1_data:
+  worker2_data:
+  mongo_data:
+  redis_data:
