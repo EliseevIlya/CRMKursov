@@ -30,10 +30,27 @@ class Settings(BaseSettings):
     TOKEN: str = "supersecrettoken"
     ADMINS: str = "admin@example.com"
 
+    SECRET_KEY: str = "replace-with-secure-random-secret"
+    CRYPT_SCHEME: str = "pbkdf2_sha256"
+
+    ALGORITHM: str = "HS256"
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 30
+    ISSUER: str = None
+
+    # Google OAuth2
+    GOOGLE_CLIENT_ID: str = ""
+    GOOGLE_CLIENT_SECRET: str = ""
+    GOOGLE_REDIRECT_URI: str = "http://localhost:8000/auth/oauth/google/callback"
+
+    # Redis prefix
+    REDIS_REFRESH_PREFIX: str = "refresh:"
+
     model_config = SettingsConfigDict(env_file=env_path, extra="ignore", env_file_encoding="utf-8", env_prefix="")
 
 
 settings = Settings()
+
 
 # Async SQLAlchemy URL helper
 def get_postgres_async_url() -> str:
@@ -42,6 +59,7 @@ def get_postgres_async_url() -> str:
 
 def get_mongo_url() -> str:
     return f"mongodb://{settings.MONGO_USER}:{settings.MONGO_PASSWORD}@{settings.MONGO_HOST}:{settings.MONGO_PORT}/?authSource=admin"
+
 
 def get_redis_url() -> str:
     return f"redis://{settings.REDIS_HOST}:{settings.REDIS_PORT}/{settings.REDIS_DB}"

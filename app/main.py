@@ -1,5 +1,6 @@
 from fastapi import FastAPI
 
+from app.api import auth, oauth
 from app.container import global_container
 from app.mongo import init_mongo
 
@@ -17,6 +18,9 @@ async def startup():
     #     await conn.run_sync(models.Base.metadata.create_all)
     await global_container.connect()
     print("startup finished")
+
+app.include_router(auth.router)
+app.include_router(oauth.router)
 
 
 @app.get("/")
