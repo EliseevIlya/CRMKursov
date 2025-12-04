@@ -104,7 +104,7 @@ def decode_token(token: str, expected_issuer: Optional[str] = None) -> Dict[str,
     except JWTError as e:
         raise ValueError(f"Invalid token: {str(e)}")
 
-
+#TODO add to env tokenUrl
 oauth2_scheme = OAuth2PasswordBearer(tokenUrl="/auth/login")
 
 

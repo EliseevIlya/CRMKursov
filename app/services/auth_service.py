@@ -37,7 +37,7 @@ class AuthService:
 
     async def refresh_access_token(self, refresh_token: str):
         try:
-            payload = decode_token(refresh_token)
+            payload = decode_token(refresh_token, expected_issuer=settings.ISSUER)
             user_id = int(payload.get("sub"))
             jti = payload.get("jti")
         except Exception:
@@ -55,7 +55,7 @@ class AuthService:
         return {"access_token": access, "token_type": "bearer"}
 
     async def revoke_refresh(self, refresh_token: str):
-        payload = decode_token(refresh_token)
+        payload = decode_token(refresh_token, expected_issuer=settings.ISSUER)
         user_id = int(payload.get("sub"))
         jti = payload.get("jti")
         await RefreshTokenStore.delete(user_id, jti)

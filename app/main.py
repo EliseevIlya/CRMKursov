@@ -1,6 +1,8 @@
 from fastapi import FastAPI
 
+from starlette.middleware.sessions import SessionMiddleware
 from app.api import auth, oauth
+from app.config import settings
 from app.container import global_container
 from app.mongo import init_mongo
 
@@ -9,15 +11,17 @@ app = FastAPI()
 
 @app.on_event("startup")
 async def startup():
-    # init Mongo (Beanie)
-    #await init_mongo()
-    # init Redis
-    #await init_redis()
-    # Optionally ensure DB metadata (only for dev) - don't use in prod with Alembic
-    # async with engine.begin() as conn:
-    #     await conn.run_sync(models.Base.metadata.create_all)
     await global_container.connect()
     print("startup finished")
+
+app.add_middleware(
+    SessionMiddleware,
+    secret_key=settings.SECRET_KEY,   # ОБЯЗАТЕЛЬНО: длинный secure ключ
+    session_cookie="session",         # имя cookie
+    max_age=60 * 60 * 24 * 7,         # 7 дней (в секундах)
+    same_site="lax",                  # для OAuth редиректов лучше "lax"
+    https_only=False,                 # в prod -> True
+)
 
 app.include_router(auth.router)
 app.include_router(oauth.router)
