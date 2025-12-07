@@ -16,9 +16,9 @@ class UserCreate(UserBase):
 
 
 class UserUpdate(BaseModel):
-    full_name: Optional[str]
-    role: Optional[str]
-    is_active: Optional[bool]
+    full_name: Optional[str] = None
+    role: Optional[str] = "ADMIN"
+    is_active: Optional[bool] = True
 
 
 class UserRead(UserBase):
@@ -41,9 +41,9 @@ class ClientCreate(ClientBase):
 
 
 class ClientUpdate(BaseModel):
-    full_name: Optional[str]
-    phone: Optional[str]
-    is_active: Optional[bool]
+    full_name: Optional[str] = None
+    phone: Optional[str] = None
+    is_active: Optional[bool] = True
 
 
 class ClientRead(ClientBase):
@@ -65,9 +65,9 @@ class MembershipTypeCreate(MembershipTypeBase): ...
 
 
 class MembershipTypeUpdate(BaseModel):
-    name: Optional[str]
-    duration_days: Optional[int]
-    price: Optional[float]
+    name: Optional[str] = None
+    duration_days: Optional[int] = None
+    price: Optional[float] = None
 
 
 class MembershipTypeRead(MembershipTypeBase):
@@ -90,8 +90,8 @@ class SubscriptionCreate(SubscriptionBase): ...
 
 
 class SubscriptionUpdate(BaseModel):
-    end_date: Optional[date]
-    is_active: Optional[bool]
+    end_date: Optional[date] = None
+    is_active: Optional[bool] = True
 
 
 class SubscriptionRead(SubscriptionBase):
@@ -104,15 +104,15 @@ class SubscriptionRead(SubscriptionBase):
 # ---------- Visit ----------
 class VisitBase(BaseModel):
     client_id: int
-    trainer_id: Optional[int]
-    visit_time: Optional[datetime]
+    trainer_id: Optional[int] = None
+    visit_time: Optional[datetime] = None
 
 
 class VisitCreate(VisitBase): ...
 
 
 class VisitUpdate(BaseModel):
-    visit_time: Optional[datetime]
+    visit_time: Optional[datetime] = None
 
 
 class VisitRead(VisitBase):

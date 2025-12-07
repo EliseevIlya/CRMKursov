@@ -53,6 +53,7 @@ class SubscriptionService:
         return await self.repo.get_active_by_client(client_id)
 
     async def create(self, data: SubscriptionCreate):
+        # 1. Проверки входных данных
         client = await self.clients.get(data.client_id)
         if not client:
             raise ValueError("Client not found")
@@ -61,26 +62,27 @@ class SubscriptionService:
         if not membership:
             raise ValueError("Membership not found")
 
-        # Пример транзакции: charge + создать subscription
-        async with self.session.begin():  # откроет транзакцию
-            # 1) charge через payment gateway (может бросить исключение)
-            payment_res = await self.payment.charge(client_id=data.client_id, amount=float(membership.price))
-            if not payment_res.get("ok"):
-                raise ValueError("Payment failed")
+        # 2. Списание денег
+        payment_res = await self.payment.charge(
+            client_id=data.client_id,
+            amount=float(membership.price)
+        )
+        if not payment_res.get("ok"):
+            raise ValueError("Payment failed")
 
-            # 2) создать subscription
-            sub = Subscription(
-                client_id=data.client_id,
-                membership_type_id=data.membership_type_id,
-                start_date=data.start_date,
-                end_date=data.end_date,
-                is_active=True
-            )
-            self.session.add(sub)
-            # session.begin() автоматически коммитит при выходе, или откатит при исключении
-        # invalidate cache
+        # 3. Создание подписки
+        sub = Subscription(
+            client_id=data.client_id,
+            membership_type_id=data.membership_type_id,
+            start_date=data.start_date,
+            end_date=data.end_date,
+            is_active=True
+        )
+        await self.repo.create(sub)
 
+        # 4. Инвалидация кеша
         await ActiveClientCache().delete(data.client_id)
+
         return sub
 
     async def renew(self, subscription_id: int, renew_data: SubscriptionUpdate = None):

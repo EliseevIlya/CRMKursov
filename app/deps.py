@@ -40,3 +40,23 @@ async def get_visit_service(session: AsyncSession = Depends(get_session)):
 
 async def get_training_plan_service():
     return TrainingPlanService()
+
+
+@asynccontextmanager
+async def transactional(session: AsyncSession):
+    """
+    Контекст для безопасной работы с транзакцией.
+    Если транзакция уже есть, не открываем новую.
+    Если нет — открываем и коммитим/откатываем сами.
+    """
+    transaction_started = session.in_transaction()
+    try:
+        if not transaction_started:
+            await session.begin()
+        yield session
+        if not transaction_started:
+            await session.commit()
+    except Exception:
+        if not transaction_started:
+            await session.rollback()
+        raise

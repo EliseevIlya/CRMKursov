@@ -25,6 +25,10 @@ class SubscriptionRepo(BaseRepo):
         await self.session.refresh(subscription)
         return subscription
 
+    async def graph_ql_create(self, subscription: Subscription) -> Subscription:
+        self.session.add(subscription)
+        return subscription
+
     async def update(self, subscription: Subscription, **fields) -> Subscription:
         for k, v in fields.items():
             setattr(subscription, k, v)
