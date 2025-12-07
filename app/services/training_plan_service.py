@@ -17,11 +17,17 @@ class TrainingPlanService:
         return await self.repo.create(plan)
 
     async def update(self, plan_id, updated_doc: TrainingPlanDoc):
+        plan = await self.repo.get_by_id(plan_id)
+        if not plan:
+            raise ValueError(f"Plan {plan_id} not found")
+        plan.weeks = updated_doc.weeks
+        plan.notes = updated_doc.notes
         return await self.repo.update(updated_doc)
 
     async def delete(self, plan_id):
         plan = await self.repo.get_by_id(plan_id)
-        if plan:
-            await self.repo.delete(plan)
-            return True
-        return False
+        if not plan:
+            raise ValueError(f"Plan {plan_id} not found")
+            return False
+        await self.repo.delete(plan)
+        return True

@@ -48,6 +48,7 @@ class ClientUpdate(BaseModel):
 
 class ClientRead(ClientBase):
     id: int
+    has_active_subscription: bool
 
     class Config:
         from_attributes = True
