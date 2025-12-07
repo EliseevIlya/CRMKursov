@@ -121,7 +121,7 @@ class Mutation:
                           is_active=created.is_active, has_active_subscription=False)
 
     @strawberry.mutation
-    @require_roles("ADMIN", "TRAINER", "USER")
+    @require_roles("ADMIN", "TRAINER")
     async def create_subscription(self, info, client_id: int, membership_type_id: int, start_date: date,
                                   end_date: date) -> bool:
         # Проверяем авторизацию: только авторизованные пользователи (например, админ/кассир) могут
@@ -136,7 +136,7 @@ class Mutation:
         return True
 
     @strawberry.mutation
-    @require_roles("ADMIN", "TRAINER", "USER")
+    @require_roles("ADMIN", "TRAINER")
     async def create_visit(self, info, client_id: int, trainer_id: Optional[int] = None,
                            visit_time: Optional[str] = None) -> bool:
         user = info.context.get("user")
