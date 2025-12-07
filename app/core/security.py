@@ -116,7 +116,9 @@ async def get_current_user(token: str = Depends(oauth2_scheme), session=Depends(
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid token")
     repo = UserRepo(session)
     user = await repo.get_by_id(user_id)
-    if not user or not user.is_active:
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Authentication required")
+    elif not user.is_active:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Inactive user")
     return user
 
