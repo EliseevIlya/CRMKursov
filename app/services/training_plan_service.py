@@ -12,17 +12,31 @@ class TrainingPlanService:
         return await self.repo.get_by_client(client_id)
 
     async def create(self, payload: TrainingPlanCreate):
-        plan = TrainingPlanDoc(client_id=payload.client_id, trainer_id=payload.trainer_id, weeks=payload.weeks,
-                               notes=payload.notes)
+        #plan = TrainingPlanDoc(client_id=payload.client_id, trainer_id=payload.trainer_id, weeks=payload.weeks,notes=payload.notes)
+        plan = TrainingPlanDoc(**payload.dict())
         return await self.repo.create(plan)
 
-    async def update(self, plan_id, updated_doc: TrainingPlanDoc):
+    """"
+        async def update(self, plan_id, updated_doc: TrainingPlanDoc):
         plan = await self.repo.get_by_id(plan_id)
         if not plan:
             raise ValueError(f"Plan {plan_id} not found")
         plan.weeks = updated_doc.weeks
         plan.notes = updated_doc.notes
         return await self.repo.update(updated_doc)
+    """
+
+    async def update(self, plan_id: str, updated_doc: TrainingPlanCreate):
+        plan = await self.repo.get_by_id(plan_id)
+        if not plan:
+            raise ValueError(f"Plan {plan_id} not found")
+
+        update_data = updated_doc.dict(exclude_unset=True)  # только переданные поля
+
+        for k, v in update_data.items():
+            setattr(plan, k, v)  # обновляем только переданные поля
+
+        return await self.repo.update(plan)
 
     async def delete(self, plan_id):
         plan = await self.repo.get_by_id(plan_id)

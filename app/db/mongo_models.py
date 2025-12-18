@@ -22,10 +22,10 @@ class WeekPlan(BaseModel):
 
 
 class TrainingPlanDoc(Document):
-    client_id: int
+    client_id: Optional[int] = None
     trainer_id: Optional[int] = None
     created_at: datetime = Field(default_factory=datetime.now)
-    weeks: List[WeekPlan]
+    weeks: Optional[List[WeekPlan]]
     notes: Optional[str] = None
 
     class Settings:

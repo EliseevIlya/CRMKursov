@@ -1,3 +1,4 @@
+from dataclasses import dataclass
 from typing import List, Optional
 from pydantic import BaseModel
 from datetime import datetime
@@ -8,7 +9,6 @@ class ExerciseSchema(BaseModel):
     sets: Optional[int] = None
     reps: Optional[int] = None
     notes: Optional[str] = None
-
 
 class DayPlanSchema(BaseModel):
     day: str

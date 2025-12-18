@@ -68,6 +68,7 @@ class SubscriptionService:
             amount=float(membership.price)
         )
         if not payment_res.get("ok"):
+            await self.session.rollback()
             raise ValueError("Payment failed")
 
         # 3. Создание подписки
@@ -79,6 +80,7 @@ class SubscriptionService:
             is_active=True
         )
         await self.repo.create(sub)
+        await self.session.commit()
 
         # 4. Инвалидация кеша
         await ActiveClientCache().delete(data.client_id)
@@ -95,13 +97,16 @@ class SubscriptionService:
             raise ValueError("Membership type not found")
 
         new_end = sub.end_date + timedelta(days=membership.duration_days)
-        async with self.session.begin():
-            payment_res = await self.payment.charge(client_id=sub.client_id, amount=float(membership.price))
-            if not payment_res.get("ok"):
-                raise ValueError("Payment failed")
-            sub.end_date = new_end
-            sub.is_active = True
-            self.session.add(sub)
+
+        payment_res = await self.payment.charge(client_id=sub.client_id, amount=float(membership.price))
+        if not payment_res.get("ok"):
+            await self.session.rollback()
+            raise ValueError("Payment failed")
+
+        sub.end_date = new_end
+        sub.is_active = True
+        await self.repo.update(sub)
+        await self.session.commit()
 
         # invalidate cache
         await ActiveClientCache().delete(sub.client_id)

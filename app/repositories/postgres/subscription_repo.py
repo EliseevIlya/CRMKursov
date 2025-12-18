@@ -19,9 +19,18 @@ class SubscriptionRepo(BaseRepo):
         q = await self.session.execute(select(Subscription).where(Subscription.client_id == client_id))
         return q.scalars().all()
 
-    async def create(self, subscription: Subscription) -> Subscription:
+    """"
+        async def create(self, subscription: Subscription) -> Subscription:
         self.session.add(subscription)
         await self.session.commit()
+        await self.session.refresh(subscription)
+        return subscription
+    """
+
+    #для commit/rollback в сервисе -  flush() отправляет INSERT в БД НО НЕ коммитит
+    async def create(self, subscription: Subscription) -> Subscription:
+        self.session.add(subscription)
+        await self.session.flush()  # 👈 ВАЖНО
         await self.session.refresh(subscription)
         return subscription
 
@@ -29,10 +38,19 @@ class SubscriptionRepo(BaseRepo):
         self.session.add(subscription)
         return subscription
 
-    async def update(self, subscription: Subscription, **fields) -> Subscription:
+    """"
+    нужен если обновлять поля для subscription + тут автокоммит
+        async def update(self, subscription: Subscription, **fields) -> Subscription:
         for k, v in fields.items():
             setattr(subscription, k, v)
         await self.session.commit()
+        await self.session.refresh(subscription)
+        return subscription
+    """
+    #для commit/rollback в сервисе -  flush() отправляет INSERT в БД НО НЕ коммитит
+    async def update(self, subscription: Subscription) -> Subscription:
+        self.session.add(subscription)
+        await self.session.flush()
         await self.session.refresh(subscription)
         return subscription
 

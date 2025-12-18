@@ -6,6 +6,7 @@ from app.db.mongo_models import TrainingPlanDoc
 
 mongo_client: AsyncIOMotorClient | None = None
 
+
 async def init_mongo():
     global mongo_client
     mongo_client = AsyncIOMotorClient(get_mongo_url())

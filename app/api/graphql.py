@@ -1,24 +1,23 @@
+from datetime import date, datetime
+from typing import Optional, List
+
 import strawberry
 from strawberry import UNSET
-from typing import Optional, List, Union
 from strawberry.fastapi import GraphQLRouter
-from datetime import date
 
-from app.db.mongo_models import WeekPlan
+from app.db.mongo_models import TrainingPlanDoc
 from app.decorators.graphql_role_require import require_roles
-from app.decorators.graphql_with_transaction import with_transaction
-
+from app.schemas.mongo import TrainingPlanCreate
+from app.schemas.postgres import ClientCreate as PClientCreate
+from app.schemas.postgres import MembershipTypeUpdate, MembershipTypeCreate
+from app.schemas.postgres import SubscriptionCreate as PSubCreate
+from app.schemas.postgres import VisitCreate as PVisitCreate
 from app.services.client_service import ClientService
 from app.services.membership_service import MembershipService
 from app.services.subscription_service import SubscriptionService
 from app.services.training_plan_service import TrainingPlanService
-from app.schemas.postgres import ClientRead, ClientCreate, ClientUpdate, MembershipTypeUpdate, MembershipTypeCreate
-
-from app.schemas.postgres import ClientCreate as PClientCreate
-from app.schemas.postgres import SubscriptionCreate as PSubCreate
-from app.schemas.postgres import VisitCreate as PVisitCreate
 from app.services.visit_service import VisitService
-from app.utils.graphql_to_dict import graphql_to_dict
+from app.utils.graphql_to_dict import graphql_to_dict, graphql_to_dict_for_training_plan
 
 
 # --- GraphQL types (маленькая обёртка для ответа) ---
@@ -55,9 +54,11 @@ class WeekPlanType:
 @strawberry.type
 class TrainingPlanType:
     id: strawberry.ID
-    trainer_id: int
+    client_id: int
+    trainer_id: Optional[int]
     weeks: List[WeekPlanType]
-    notes: str
+    notes: Optional[str]
+    created_at: datetime
 
 
 @strawberry.type
@@ -81,6 +82,79 @@ class MembershipUpdateInput:
     duration_days: Optional[int] = UNSET
     price: Optional[float] = UNSET
 
+
+@strawberry.input
+class ExerciseInput:
+    name: str
+    sets: Optional[int] = None
+    reps: Optional[int] = None
+    notes: Optional[str] = None
+
+
+@strawberry.input
+class DayPlanInput:
+    day: str
+    exercises: List[ExerciseInput]
+
+
+@strawberry.input
+class WeekPlanInput:
+    week: int
+    days: List[DayPlanInput]
+
+
+@strawberry.input
+class TrainingPlanCreateInput:
+    client_id: int
+    trainer_id: Optional[int] = None
+    weeks: List[WeekPlanInput]
+    notes: Optional[str] = None
+
+
+@strawberry.input
+class TrainingPlanUpdateInput:
+    client_id: Optional[int] = UNSET
+    trainer_id: Optional[int] = UNSET
+    weeks: Optional[List[WeekPlanInput]] = UNSET
+    notes: Optional[str] = UNSET
+
+
+def plan_to_gql(plan: TrainingPlanDoc) -> TrainingPlanType:
+    # конвертация недель
+    weeks_gql = []
+    for week in plan.weeks:
+        days_gql = []
+        for day in week.days:
+            exercises_gql = [
+                ExerciseType(
+                    name=ex.name,
+                    sets=ex.sets,
+                    reps=ex.reps,
+                    notes=ex.notes
+                )
+                for ex in day.exercises
+            ]
+            days_gql.append(
+                DayPlanType(
+                    day=day.day,
+                    exercises=exercises_gql
+                )
+            )
+        weeks_gql.append(
+            WeekPlanType(
+                week=week.week,
+                days=days_gql
+            )
+        )
+
+    return TrainingPlanType(
+        id=str(plan.id),
+        client_id=plan.client_id,
+        trainer_id=plan.trainer_id,
+        weeks=weeks_gql,
+        notes=plan.notes,
+        created_at=plan.created_at
+    )
 
 # Можно использовать pydantic -> strawberry conversion, но ручной контролируемый тип проще
 
@@ -129,7 +203,7 @@ class Query:
         svc = TrainingPlanService()
         plans = await svc.list_for_client(client_id)
         # преобразуй планы в типы GraphQL
-        return [TrainingPlanType(...) for p in plans]
+        return [plan_to_gql(p) for p in plans]
 
     # ---------- Membership ----------
     # ----------Get by ID Membership ----------
@@ -160,6 +234,24 @@ class Query:
                 duration_days=r.duration_days,
                 price=float(r.price)
             ) for r in rows
+        ]
+
+    # ---------- TrainingPlan ----------
+    # ---------- Get by Client ID TrainingPlan ----------
+    @strawberry.field
+    async def training_plans_for_client(self, info, client_id: int) -> List[TrainingPlanType]:
+        svc = TrainingPlanService()
+        plans = await svc.list_for_client(client_id)
+        return [
+            TrainingPlanType(
+                id=str(plan.id),
+                client_id=plan.client_id,
+                trainer_id=plan.trainer_id,
+                weeks=plan.weeks,
+                notes=plan.notes,
+                created_at=plan.created_at
+            )
+            for plan in plans
         ]
 
 
@@ -275,5 +367,44 @@ class Mutation:
         return True
 
     #TODO add create_training_plan
+    # ---------- TrainingPlan ----------
+    # ---------- CREATE ----------
+    @strawberry.mutation
+    async def create_training_plan(self, info, data: TrainingPlanCreateInput) -> TrainingPlanType:
+        svc = TrainingPlanService()
+        input_data = graphql_to_dict_for_training_plan(data)
+        training_plan_create = TrainingPlanCreate(**input_data)
+        plan = await svc.create(training_plan_create)
+        return TrainingPlanType(
+            id=str(plan.id),
+            client_id=plan.client_id,
+            trainer_id=plan.trainer_id,
+            weeks=plan.weeks,
+            notes=plan.notes,
+            created_at=plan.created_at
+        )
+
+    # ---------- UPDATE ----------
+    @strawberry.mutation
+    async def update_training_plan(self, info, plan_id: str, data: TrainingPlanUpdateInput) -> TrainingPlanType:
+        svc = TrainingPlanService()
+        input_data = graphql_to_dict_for_training_plan(data)
+
+        update_training_plan = TrainingPlanDoc(**input_data)
+        updated_plan_doc = await svc.update(plan_id, update_training_plan)
+        return TrainingPlanType(
+            id=str(updated_plan_doc.id),
+            client_id=updated_plan_doc.client_id,
+            trainer_id=updated_plan_doc.trainer_id,
+            weeks=updated_plan_doc.weeks,
+            notes=updated_plan_doc.notes,
+            created_at=updated_plan_doc.created_at
+        )
+
+    @strawberry.mutation
+    async def delete_training_plan(self, info, plan_id: str) -> bool:
+        svc = TrainingPlanService()
+        return await svc.delete(plan_id)
+
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)
