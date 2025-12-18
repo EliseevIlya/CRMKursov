@@ -7,7 +7,7 @@ from datetime import date
 from app.db.mongo_models import WeekPlan
 from app.decorators.graphql_role_require import require_roles
 from app.decorators.graphql_with_transaction import with_transaction
-# импорт твоих сервисов и pydantic-схем/моделей
+
 from app.services.client_service import ClientService
 from app.services.membership_service import MembershipService
 from app.services.subscription_service import SubscriptionService
@@ -274,6 +274,6 @@ class Mutation:
         await svc.repo.delete(existing)
         return True
 
+    #TODO add create_training_plan
 
 schema = strawberry.Schema(query=Query, mutation=Mutation)
-#graphql_app = GraphQLRouter(schema, path="/graphql",context_getter=lambda request: request.app.state.get("graphql_context"))

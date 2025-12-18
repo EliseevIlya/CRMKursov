@@ -49,7 +49,7 @@ async def google_callback(request: Request, session: AsyncSession = Depends(get_
     auth_service = AuthService(session)
 
     if not user:
-        # create user as CLIENT, random password (not used)
+        # create user as ADMIN, random password (not used)
         #TODO add  auth_provider instead ( google / self)
         hashed = auth_service.hash_password(uuid4().hex)
         new_user = User(email=email, password_hash=hashed, full_name=userinfo.get("name"), role="CLIENT",
