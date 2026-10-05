@@ -68,7 +68,7 @@ services:
       - mongo_data:/data/db
 
   redis:
-    image: redis:7
+    image: redis:8
     container_name: redis_fitness
     ports:
       - "6379:6379"
