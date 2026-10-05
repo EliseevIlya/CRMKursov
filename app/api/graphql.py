@@ -156,6 +156,7 @@ def plan_to_gql(plan: TrainingPlanDoc) -> TrainingPlanType:
         created_at=plan.created_at
     )
 
+
 # Можно использовать pydantic -> strawberry conversion, но ручной контролируемый тип проще
 
 # --- Query ---
